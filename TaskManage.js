@@ -12,7 +12,11 @@ function handleUserPrompt(prompt) {
     let apiResponse = callOpenAiApi(apiPrompt, 'gpt-4o');
     
     // 4. 応答に基づいてシートを更新
-    updateSheetBasedOnApiResponse(apiResponse);
+    if (apiResponse) {
+        updateSheetBasedOnApiResponse(apiResponse);
+    } else {
+        Logger.log('API応答がありません。');
+    }
 }
 
 function getSheetFormat() {
@@ -71,11 +75,6 @@ function callOpenAiApi(prompt, modelName) {
 }
 
 function updateSheetBasedOnApiResponse(responseText) {
-    if (!responseText) {
-        Logger.log('API応答がnullです。');
-        return;
-    }
-
     try {
         let response = JSON.parse(responseText);
         if (!response.choices || !response.choices[0].message.content) {
@@ -88,7 +87,13 @@ function updateSheetBasedOnApiResponse(responseText) {
         // ```json と ``` を削除して有効なJSONに変換
         actionsContent = actionsContent.replace(/```json/g, '').replace(/```/g, '').trim();
         
+        // JSONとしてパース
         let actionsObject = JSON.parse(actionsContent);
+        if (!Array.isArray(actionsObject.actions)) {
+            Logger.log('API応答のactionsが配列ではありません。');
+            return;
+        }
+        
         let actions = actionsObject.actions;  // アクション配列を取得
         let sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 
@@ -105,6 +110,9 @@ function updateSheetBasedOnApiResponse(responseText) {
                     break;
             }
         });
+
+        // タスクの更新が完了した後にUIを更新
+        updateUIWithTasks();
     } catch (e) {
         Logger.log(`JSONパースエラー: ${e.message}`);
         Logger.log(`API応答内容: ${responseText}`);
@@ -117,7 +125,7 @@ function updateRow(sheet, rowIndex, columnName, newValue) {
     if (columnIndex > 0) {
         sheet.getRange(rowIndex, columnIndex).setValue(newValue);
     } else {
-        Logger.log(`Column ${columnName} not found`);
+        Logger.log(`Column ${columnName} not found. Available columns: ${headers.join(', ')}`);
     }
 }
 
