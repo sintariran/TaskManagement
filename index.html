@@ -32,7 +32,7 @@
             margin-bottom: 10px;
             resize: none;
             font-size: 14px;
-            box-sizing: border-box; /* 追加 */
+            box-sizing: border-box;
         }
         button {
             width: 100%;
@@ -98,11 +98,17 @@
                 responseDiv.innerHTML = 'Response: ' + response;
 
                 // シートの更新処理をトリガー
-                google.script.run.updateSheetBasedOnApiResponse(response);
+                google.script.run.withSuccessHandler(updateUIWithTasks).updateSheetBasedOnApiResponse(response);
             }).withFailureHandler(function(error) {
                 loading.style.display = 'none';
                 responseDiv.innerHTML = 'Error: ' + error.message;
             }).handleUserPrompt(prompt);
+        }
+
+        function updateUIWithTasks() {
+            google.script.run.withSuccessHandler(function(tasksHtml) {
+                document.getElementById('taskList').innerHTML = tasksHtml;
+            }).getTasksHtml();
         }
     </script>
 </body>

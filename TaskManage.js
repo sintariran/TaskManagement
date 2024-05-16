@@ -100,7 +100,7 @@ function updateSheetBasedOnApiResponse(responseText) {
         actions.forEach(action => {
             switch (action.action) {
                 case 'update':
-                    updateRow(sheet, action.row, action.column, action.value);
+                    updateRowByTaskId(sheet, action.row, action.column, action.value);
                     break;
                 case 'delete':
                     deleteRow(sheet, action.row);
@@ -112,7 +112,7 @@ function updateSheetBasedOnApiResponse(responseText) {
         });
 
         // タスクの更新が完了した後にUIを更新
-        updateUIWithTasks();
+        updateUIWithTasks(actions);
     } catch (e) {
         Logger.log(`JSONパースエラー: ${e.message}`);
         Logger.log(`API応答内容: ${responseText}`);
@@ -150,4 +150,74 @@ function showSidebar() {
     var html = HtmlService.createHtmlOutputFromFile('index')
         .setTitle('タスク管理ツール');
     SpreadsheetApp.getUi().showSidebar(html);
+}
+
+function updateUIWithTasks(actions) {
+    let sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    let data = sheet.getDataRange().getValues();
+    let tasks = data.slice(1); // ヘッダー行を除く
+
+    let updatedTasks = actions.map(action => {
+        switch (action.action) {
+            case 'update':
+                return `更新: 行 ${action.row}, 列 ${action.column}, 新しい値: ${action.value}`;
+            case 'delete':
+                return `削除: 行 ${action.row}`;
+            case 'add':
+                return `追加: ${action.values.join(' - ')}`;
+        }
+    }).join('<br>');
+
+    let html = HtmlService.createHtmlOutput(`
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; }
+                .task-item { padding: 10px; border-bottom: 1px solid #ddd; }
+                .updated-tasks { margin-top: 20px; }
+            </style>
+        </head>
+        <body>
+            <ul>${tasks.map(task => `<li class="task-item">${task.join(' - ')}</li>`).join('')}</ul>
+            <div class="updated-tasks">
+                <h3>修正されたタスク</h3>
+                ${updatedTasks}
+            </div>
+        </body>
+        </html>
+    `).setTitle('タスク一覧');
+
+    SpreadsheetApp.getUi().showSidebar(html);
+}
+
+function getTasksHtml() {
+    let sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    let data = sheet.getDataRange().getValues();
+    let tasks = data.slice(1); // ヘッダー行を除く
+
+    let taskListHtml = tasks.map(task => {
+        return `<li class="task-item">${task.join(' - ')}</li>`;
+    }).join('');
+
+    return taskListHtml;
+}
+
+function updateRowByTaskId(sheet, taskId, columnName, newValue) {
+    let data = sheet.getDataRange().getValues();
+    let headers = data[0];
+    let columnIndex = headers.indexOf(columnName) + 1;
+
+    if (columnIndex <= 0) {
+        Logger.log(`Column ${columnName} not found. Available columns: ${headers.join(', ')}`);
+        return;
+    }
+
+    for (let i = 1; i < data.length; i++) {
+        if (data[i][0] == taskId) { // Assuming the first column contains the Task ID
+            sheet.getRange(i + 1, columnIndex).setValue(newValue); // i + 1 because sheet rows are 1-indexed
+            return;
+        }
+    }
+
+    Logger.log(`Task ID ${taskId} not found.`);
 }
