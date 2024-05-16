@@ -153,10 +153,6 @@ function showSidebar() {
 }
 
 function updateUIWithTasks(actions) {
-    let sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    let data = sheet.getDataRange().getValues();
-    let tasks = data.slice(1); // ヘッダー行を除く
-
     let updatedTasks = actions.map(action => {
         switch (action.action) {
             case 'update':
@@ -168,26 +164,16 @@ function updateUIWithTasks(actions) {
         }
     }).join('<br>');
 
-    let html = HtmlService.createHtmlOutput(`
-        <html>
-        <head>
-            <style>
-                body { font-family: Arial, sans-serif; }
-                .task-item { padding: 10px; border-bottom: 1px solid #ddd; }
-                .updated-tasks { margin-top: 20px; }
-            </style>
-        </head>
-        <body>
-            <ul>${tasks.map(task => `<li class="task-item">${task.join(' - ')}</li>`).join('')}</ul>
-            <div class="updated-tasks">
-                <h3>修正されたタスク</h3>
-                ${updatedTasks}
-            </div>
-        </body>
-        </html>
-    `).setTitle('タスク一覧');
+    let html = `
+        <div class="updated-tasks">
+            <h3>修正されたタスク</h3>
+            ${updatedTasks}
+        </div>
+    `;
 
-    SpreadsheetApp.getUi().showSidebar(html);
+    google.script.run.withSuccessHandler(function() {
+        document.getElementById('updated-tasks-container').innerHTML = html;
+    }).appendUpdatedTasks(html);
 }
 
 function getTasksHtml() {

@@ -71,6 +71,9 @@
             border-bottom: 1px solid #ddd;
             font-size: 14px;
         }
+        .updated-tasks {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -81,34 +84,25 @@
         <div id="loading" class="loading">送信中...</div>
         <div id="response" class="response"></div>
         <ul id="taskList" class="task-list"></ul>
+        <div id="updated-tasks-container">
+            <!-- 修正されたタスクがここに追加される -->
+        </div>
     </div>
 
     <script>
         function sendPrompt() {
             var prompt = document.getElementById('prompt').value;
             var loading = document.getElementById('loading');
-            var responseDiv = document.getElementById('response');
-            var taskList = document.getElementById('taskList');
-            
             loading.style.display = 'block';
-            responseDiv.innerHTML = '';
-
             google.script.run.withSuccessHandler(function(response) {
                 loading.style.display = 'none';
-                responseDiv.innerHTML = 'Response: ' + response;
-
-                // シートの更新処理をトリガー
-                google.script.run.withSuccessHandler(updateUIWithTasks).updateSheetBasedOnApiResponse(response);
-            }).withFailureHandler(function(error) {
-                loading.style.display = 'none';
-                responseDiv.innerHTML = 'Error: ' + error.message;
+                document.getElementById('response').innerText = response;
+                google.script.run.withSuccessHandler(appendUpdatedTasks).updateUIWithTasks(response);
             }).handleUserPrompt(prompt);
         }
 
-        function updateUIWithTasks() {
-            google.script.run.withSuccessHandler(function(tasksHtml) {
-                document.getElementById('taskList').innerHTML = tasksHtml;
-            }).getTasksHtml();
+        function appendUpdatedTasks(html) {
+            document.getElementById('updated-tasks-container').innerHTML = html;
         }
     </script>
 </body>
