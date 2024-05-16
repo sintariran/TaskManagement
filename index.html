@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 400px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 50px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            resize: none;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .loading {
+            display: none;
+            color: blue;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .response {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+            font-size: 14px;
+        }
+        .task-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .task-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>タスク管理ツール</h1>
+        <textarea id="prompt" placeholder="プロンプトを入力してください"></textarea>
+        <button onclick="sendPrompt()">送信</button>
+        <div id="loading" class="loading">送信中...</div>
+        <div id="response" class="response"></div>
+        <ul id="taskList" class="task-list"></ul>
+    </div>
+
+    <script>
+        function sendPrompt() {
+            var prompt = document.getElementById('prompt').value;
+            var loading = document.getElementById('loading');
+            var responseDiv = document.getElementById('response');
+            var taskList = document.getElementById('taskList');
+            
+            loading.style.display = 'block';
+            responseDiv.innerHTML = '';
+
+            google.script.run.withSuccessHandler(function(response) {
+                loading.style.display = 'none';
+                responseDiv.innerHTML = 'Response: ' + response;
+
+                // シートの更新処理をトリガー
+                google.script.run.updateSheetBasedOnApiResponse(response);
+            }).withFailureHandler(function(error) {
+                loading.style.display = 'none';
+                responseDiv.innerHTML = 'Error: ' + error.message;
+            }).handleUserPrompt(prompt);
+        }
+    </script>
+</body>
+</html>
