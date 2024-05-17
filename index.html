@@ -91,24 +91,26 @@
     <script>
         function sendPrompt() {
             var prompt = document.getElementById('prompt').value;
+            console.log('送信されたプロンプト: ' + prompt); // デバッグ用
             var loading = document.getElementById('loading');
             loading.style.display = 'block';
     
             google.script.run.withSuccessHandler(function(response) {
                 loading.style.display = 'none';
+                console.log('サーバーからの応答: ' + response); // デバッグ用
                 document.getElementById('response').innerText = response;
     
                 // JSONをパースしてアクションを取得
                 try {
                     let actions = JSON.parse(response).actions;
-                    console.log('取得したアクション:', actions); // デバッグ用
+                    console.log('取得したアクション: ' + JSON.stringify(actions)); // デバッグ用
                     updateUIWithTasks(actions);
                 } catch (e) {
-                    console.error('JSONパースエラー:', e);
+                    console.log('JSONパースエラー: ' + e);
                 }
             }).withFailureHandler(function(error) {
                 loading.style.display = 'none';
-                console.error('サーバーエラー:', error);
+                console.log('サーバーエラー: ' + error);
             }).handleUserPrompt(prompt);
         }
     
@@ -119,6 +121,7 @@
             }
     
             let updatedTasks = actions.map(action => {
+                console.log('処理中のアクション: ' + JSON.stringify(action)); // デバッグ用
                 switch (action.action) {
                     case 'update':
                         return `更新: 行 ${action.row}, 列 ${action.column}, 新しい値: ${action.value}`;
@@ -142,8 +145,9 @@
             let container = document.getElementById('updated-tasks-container');
             if (container) {
                 container.innerHTML = html;
+                console.log('UIが更新されました'); // デバッグ用
             } else {
-                console.error('updated-tasks-container が見つかりません');
+                console.log('updated-tasks-container が見つかりません');
             }
         }
     </script>

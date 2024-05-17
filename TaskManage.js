@@ -110,9 +110,6 @@ function updateSheetBasedOnApiResponse(responseText) {
                     break;
             }
         });
-
-        // タスクの更新が完了した後にUIを更新
-        updateUIWithTasks(actions);
     } catch (e) {
         Logger.log(`JSONパースエラー: ${e.message}`);
         Logger.log(`API応答内容: ${responseText}`);
@@ -150,36 +147,6 @@ function showSidebar() {
     var html = HtmlService.createHtmlOutputFromFile('index')
         .setTitle('タスク管理ツール');
     SpreadsheetApp.getUi().showSidebar(html);
-}
-
-function updateUIWithTasks(actions) {
-    if (!actions || !Array.isArray(actions)) {
-        console.log('actions が無効です: ' + JSON.stringify(actions));
-        return;
-    }
-
-    let updatedTasks = actions.map(action => {
-        switch (action.action) {
-            case 'update':
-                return `更新: 行 ${action.row}, 列 ${action.column}, 新しい値: ${action.value}`;
-            case 'delete':
-                return `削除: 行 ${action.row}`;
-            case 'add':
-                return `追加: ${action.values.join(' - ')}`;
-            default:
-                return `不明なアクション: ${JSON.stringify(action)}`;
-        }
-    }).join('<br>');
-
-    let html = `
-        <div class="updated-tasks">
-            <h3>修正されたタスク</h3>
-            ${updatedTasks}
-        </div>
-    `;
-
-    // クライアント側のHTMLを更新
-    document.getElementById('updated-tasks-container').innerHTML = html;
 }
 
 function getTasksHtml() {
