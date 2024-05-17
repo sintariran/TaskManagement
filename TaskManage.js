@@ -153,6 +153,11 @@ function showSidebar() {
 }
 
 function updateUIWithTasks(actions) {
+    if (!actions || !Array.isArray(actions)) {
+        console.log('actions が無効です: ' + JSON.stringify(actions));
+        return;
+    }
+
     let updatedTasks = actions.map(action => {
         switch (action.action) {
             case 'update':
@@ -161,6 +166,8 @@ function updateUIWithTasks(actions) {
                 return `削除: 行 ${action.row}`;
             case 'add':
                 return `追加: ${action.values.join(' - ')}`;
+            default:
+                return `不明なアクション: ${JSON.stringify(action)}`;
         }
     }).join('<br>');
 
@@ -171,9 +178,8 @@ function updateUIWithTasks(actions) {
         </div>
     `;
 
-    google.script.run.withSuccessHandler(function() {
-        document.getElementById('updated-tasks-container').innerHTML = html;
-    }).appendUpdatedTasks(html);
+    // クライアント側のHTMLを更新
+    document.getElementById('updated-tasks-container').innerHTML = html;
 }
 
 function getTasksHtml() {
@@ -206,4 +212,10 @@ function updateRowByTaskId(sheet, taskId, columnName, newValue) {
     }
 
     Logger.log(`Task ID ${taskId} not found.`);
+}
+
+function doGet() {
+    return HtmlService.createHtmlOutputFromFile('index')
+        .setTitle('タスク管理ツール')
+        .setWidth(400);
 }

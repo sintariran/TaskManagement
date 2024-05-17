@@ -88,20 +88,55 @@
             <!-- 修正されたタスクがここに追加される -->
         </div>
     </div>
-
     <script>
         function sendPrompt() {
             var prompt = document.getElementById('prompt').value;
             var loading = document.getElementById('loading');
             loading.style.display = 'block';
+
             google.script.run.withSuccessHandler(function(response) {
                 loading.style.display = 'none';
                 document.getElementById('response').innerText = response;
-                google.script.run.withSuccessHandler(appendUpdatedTasks).updateUIWithTasks(response);
+
+                // JSONをパースしてアクションを取得
+                try {
+                    let actions = JSON.parse(response).actions;
+                    updateUIWithTasks(actions);
+                } catch (e) {
+                    console.error('JSONパースエラー:', e);
+                }
+            }).withFailureHandler(function(error) {
+                loading.style.display = 'none';
+                console.error('サーバーエラー:', error);
             }).handleUserPrompt(prompt);
         }
 
-        function appendUpdatedTasks(html) {
+        function updateUIWithTasks(actions) {
+            if (!actions || !Array.isArray(actions)) {
+                console.log('actions が無効です: ' + JSON.stringify(actions));
+                return;
+            }
+
+            let updatedTasks = actions.map(action => {
+                switch (action.action) {
+                    case 'update':
+                        return `更新: 行 ${action.row}, 列 ${action.column}, 新しい値: ${action.value}`;
+                    case 'delete':
+                        return `削除: 行 ${action.row}`;
+                    case 'add':
+                        return `追加: ${action.values.join(' - ')}`;
+                    default:
+                        return `不明なアクション: ${JSON.stringify(action)}`;
+                }
+            }).join('<br>');
+
+            let html = `
+                <div class="updated-tasks">
+                    <h3>修正されたタスク</h3>
+                    ${updatedTasks}
+                </div>
+            `;
+
             document.getElementById('updated-tasks-container').innerHTML = html;
         }
     </script>
