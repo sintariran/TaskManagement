@@ -93,14 +93,15 @@
             var prompt = document.getElementById('prompt').value;
             var loading = document.getElementById('loading');
             loading.style.display = 'block';
-
+    
             google.script.run.withSuccessHandler(function(response) {
                 loading.style.display = 'none';
                 document.getElementById('response').innerText = response;
-
+    
                 // JSONをパースしてアクションを取得
                 try {
                     let actions = JSON.parse(response).actions;
+                    console.log('取得したアクション:', actions); // デバッグ用
                     updateUIWithTasks(actions);
                 } catch (e) {
                     console.error('JSONパースエラー:', e);
@@ -110,13 +111,13 @@
                 console.error('サーバーエラー:', error);
             }).handleUserPrompt(prompt);
         }
-
+    
         function updateUIWithTasks(actions) {
             if (!actions || !Array.isArray(actions)) {
                 console.log('actions が無効です: ' + JSON.stringify(actions));
                 return;
             }
-
+    
             let updatedTasks = actions.map(action => {
                 switch (action.action) {
                     case 'update':
@@ -129,15 +130,21 @@
                         return `不明なアクション: ${JSON.stringify(action)}`;
                 }
             }).join('<br>');
-
+    
             let html = `
                 <div class="updated-tasks">
                     <h3>修正されたタスク</h3>
                     ${updatedTasks}
                 </div>
             `;
-
-            document.getElementById('updated-tasks-container').innerHTML = html;
+    
+            // クライアント側のHTMLを更新
+            let container = document.getElementById('updated-tasks-container');
+            if (container) {
+                container.innerHTML = html;
+            } else {
+                console.error('updated-tasks-container が見つかりません');
+            }
         }
     </script>
 </body>
