@@ -110,7 +110,9 @@
                 // JSONをパースしてアクションを取得
                 try {
                     // 応答内容からJSON部分を抽出
-                    let jsonResponse = response.match(/```json\n([\s\S]*?)\n```/);
+                    let jsonResponse = response.match(/```json\s*([\s\S]*?)\s*```/);
+                    console.log('jsonResponse: ', jsonResponse);
+                    console.log('jsonResponse[1]: ', jsonResponse ? jsonResponse[1] : 'undefined');
                     if (jsonResponse && jsonResponse[1]) {
                         let actions = JSON.parse(jsonResponse[1]).actions;
                         console.log('取得したアクション: ' + JSON.stringify(actions)); // デバッグ用
