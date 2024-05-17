@@ -98,13 +98,26 @@
             google.script.run.withSuccessHandler(function(response) {
                 loading.style.display = 'none';
                 console.log('サーバーからの応答: ' + response); // デバッグ用
+    
+                if (!response) {
+                    console.log('サーバーからの応答がnullです');
+                    document.getElementById('response').innerText = 'サーバーからの応答がありません';
+                    return;
+                }
+    
                 document.getElementById('response').innerText = response;
     
                 // JSONをパースしてアクションを取得
                 try {
-                    let actions = JSON.parse(response).actions;
-                    console.log('取得したアクション: ' + JSON.stringify(actions)); // デバッグ用
-                    updateUIWithTasks(actions);
+                    // 応答内容からJSON部分を抽出
+                    let jsonResponse = response.match(/```json\n([\s\S]*?)\n```/);
+                    if (jsonResponse && jsonResponse[1]) {
+                        let actions = JSON.parse(jsonResponse[1]).actions;
+                        console.log('取得したアクション: ' + JSON.stringify(actions)); // デバッグ用
+                        updateUIWithTasks(actions);
+                    } else {
+                        console.log('JSON部分が見つかりません');
+                    }
                 } catch (e) {
                     console.log('JSONパースエラー: ' + e);
                 }
