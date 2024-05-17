@@ -141,7 +141,7 @@
                     case 'delete':
                         return `削除: 行 ${action.row}`;
                     case 'add':
-                        return `追加: ${action.values.join(' - ')}`;
+                        return `追加: ${action.values.map(value => value !== undefined ? value : '').join(' - ')}`;
                     default:
                         return `不明なアクション: ${JSON.stringify(action)}`;
                 }

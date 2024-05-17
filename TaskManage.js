@@ -1,4 +1,4 @@
-const MAX_TOKEN_NUM = 150;
+const MAX_TOKEN_NUM = 2048;
 
 function handleUserPrompt(prompt) {
     // 1. 現在のシートフォーマットとデータを取得
@@ -16,6 +16,59 @@ function handleUserPrompt(prompt) {
         updateSheetBasedOnApiResponse(apiResponse);
     } else {
         Logger.log('API応答がありません。');
+    }
+
+    // APIの応答を返す
+    return apiResponse;
+}
+
+function updateSheetBasedOnApiResponse(responseText) {
+    try {
+        let response = JSON.parse(responseText);
+        if (!response.choices || !response.choices[0].message.content) {
+            Logger.log('API応答の形式が不正です。');
+            return;
+        }
+        
+        let actionsContent = response.choices[0].message.content;
+
+        // ```json と ``` を削除して有効なJSONに変換
+        actionsContent = actionsContent.replace(/```json/g, '').replace(/```/g, '').trim();
+        
+        // JSONとしてパース
+        let actionsObject;
+        try {
+            actionsObject = JSON.parse(actionsContent);
+        } catch (e) {
+            Logger.log('部分的なJSONパースエラー: ' + e.message);
+            actionsContent += ']}'; // 応答が途中で切れている場合の対処
+            actionsObject = JSON.parse(actionsContent);
+        }
+
+        if (!Array.isArray(actionsObject.actions)) {
+            Logger.log('API応答のactionsが配列ではありません。');
+            return;
+        }
+        
+        let actions = actionsObject.actions;  // アクション配列を取得
+        let sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+
+        actions.forEach(action => {
+            switch (action.action) {
+                case 'update':
+                    updateRowByTaskId(sheet, action.row, action.column, action.value);
+                    break;
+                case 'delete':
+                    deleteRow(sheet, action.row);
+                    break;
+                case 'add':
+                    addRow(sheet, action.values);
+                    break;
+            }
+        });
+    } catch (e) {
+        Logger.log(`JSONパースエラー: ${e.message}`);
+        Logger.log(`API応答内容: ${responseText}`);
     }
 }
 
@@ -71,48 +124,6 @@ function callOpenAiApi(prompt, modelName) {
     } catch (e) {
         Logger.log(`API呼び出しエラー: ${e.message}`);
         return null;
-    }
-}
-
-function updateSheetBasedOnApiResponse(responseText) {
-    try {
-        let response = JSON.parse(responseText);
-        if (!response.choices || !response.choices[0].message.content) {
-            Logger.log('API応答の形式が不正です。');
-            return;
-        }
-        
-        let actionsContent = response.choices[0].message.content;
-
-        // ```json と ``` を削除して有効なJSONに変換
-        actionsContent = actionsContent.replace(/```json/g, '').replace(/```/g, '').trim();
-        
-        // JSONとしてパース
-        let actionsObject = JSON.parse(actionsContent);
-        if (!Array.isArray(actionsObject.actions)) {
-            Logger.log('API応答のactionsが配列ではありません。');
-            return;
-        }
-        
-        let actions = actionsObject.actions;  // アクション配列を取得
-        let sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-
-        actions.forEach(action => {
-            switch (action.action) {
-                case 'update':
-                    updateRowByTaskId(sheet, action.row, action.column, action.value);
-                    break;
-                case 'delete':
-                    deleteRow(sheet, action.row);
-                    break;
-                case 'add':
-                    addRow(sheet, action.values);
-                    break;
-            }
-        });
-    } catch (e) {
-        Logger.log(`JSONパースエラー: ${e.message}`);
-        Logger.log(`API応答内容: ${responseText}`);
     }
 }
 
