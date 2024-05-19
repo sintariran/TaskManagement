@@ -45,6 +45,7 @@ function handleUserPrompt(prompt) {
         return null;
     }
 }
+
 function updateSheetBasedOnApiResponse(responseText) {
     try {
         Logger.log('API応答のテキスト: ' + responseText);
@@ -84,16 +85,24 @@ function updateSheetBasedOnApiResponse(responseText) {
         Logger.log('取得したアクション配列: ' + JSON.stringify(actions));
         let sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 
-        actions.forEach(action => {
+        // 削除アクションを行数が大きい順にソート
+        let deleteActions = actions.filter(action => action.action === 'delete').sort((a, b) => b.row - a.row);
+        let otherActions = actions.filter(action => action.action !== 'delete');
+
+        // 削除アクションを先に処理
+        deleteActions.forEach(action => {
+            Logger.log('処理中の削除アクション: ' + JSON.stringify(action));
+            deleteRow(sheet, action.row);
+            Logger.log(`削除アクション: 行 ${action.row}`);
+        });
+
+        // その他のアクションを処理
+        otherActions.forEach(action => {
             Logger.log('処理中のアクション: ' + JSON.stringify(action));
             switch (action.action) {
                 case 'update':
-                    updateRowByTaskId(sheet, action.row, action.column, action.value);
+                    updateRowByIndex(sheet, action.row, action.column, action.value);
                     Logger.log(`更新アクション: 行 ${action.row}, 列 ${action.column}, 新しい値: ${action.value}`);
-                    break;
-                case 'delete':
-                    deleteRow(sheet, action.row);
-                    Logger.log(`削除アクション: 行 ${action.row}`);
                     break;
                 case 'add':
                     addRow(sheet, action.values);
