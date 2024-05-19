@@ -16,33 +16,63 @@ function handleUserPrompt(prompt) {
         updateSheetBasedOnApiResponse(apiResponse);
     } else {
         Logger.log('API応答がありません。');
+        return null;
     }
 
-    // APIの応答を返す
-    return apiResponse;
-}
+    // APIの応答をパースして返す
+    try {
+        Logger.log('API応答のパースを開始します。');
+        let jsonResponse = apiResponse.match(/```json\s*([\s\S]*?)\s*```/);
+        Logger.log('正規表現によるマッチング完了: ' + JSON.stringify(jsonResponse));
+        
+        let jsonString;
+        if (jsonResponse && jsonResponse[1]) {
+            Logger.log('JSON部分の抽出に成功しました。');
+            // エスケープされた文字列を正しいJSON形式に変換
+            jsonString = jsonResponse[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+        } else {
+            Logger.log('API応答のJSON部分が見つかりません。直接パースを試みます。');
+            let response = JSON.parse(apiResponse);
+            jsonString = response.choices[0].message.content;
+        }
 
+        Logger.log('変換後のJSON文字列: ' + jsonString);
+        let parsedResponse = JSON.parse(jsonString);
+        Logger.log('JSONパースに成功しました。');
+        return parsedResponse;
+    } catch (e) {
+        Logger.log('API応答のパースエラー: ' + e.message);
+        return null;
+    }
+}
 function updateSheetBasedOnApiResponse(responseText) {
     try {
+        Logger.log('API応答のテキスト: ' + responseText);
         let response = JSON.parse(responseText);
+        Logger.log('パースされたAPI応答: ' + JSON.stringify(response));
+        
         if (!response.choices || !response.choices[0].message.content) {
             Logger.log('API応答の形式が不正です。');
             return;
         }
         
         let actionsContent = response.choices[0].message.content;
+        Logger.log('API応答のcontent部分: ' + actionsContent);
 
         // ```json と ``` を削除して有効なJSONに変換
         actionsContent = actionsContent.replace(/```json/g, '').replace(/```/g, '').trim();
+        Logger.log('整形後のJSON文字列: ' + actionsContent);
         
         // JSONとしてパース
         let actionsObject;
         try {
             actionsObject = JSON.parse(actionsContent);
+            Logger.log('パースされたアクションオブジェクト: ' + JSON.stringify(actionsObject));
         } catch (e) {
             Logger.log('部分的なJSONパースエラー: ' + e.message);
             actionsContent += ']}'; // 応答が途中で切れている場合の対処
             actionsObject = JSON.parse(actionsContent);
+            Logger.log('修正後のパースされたアクションオブジェクト: ' + JSON.stringify(actionsObject));
         }
 
         if (!Array.isArray(actionsObject.actions)) {
@@ -51,19 +81,26 @@ function updateSheetBasedOnApiResponse(responseText) {
         }
         
         let actions = actionsObject.actions;  // アクション配列を取得
+        Logger.log('取得したアクション配列: ' + JSON.stringify(actions));
         let sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 
         actions.forEach(action => {
+            Logger.log('処理中のアクション: ' + JSON.stringify(action));
             switch (action.action) {
                 case 'update':
                     updateRowByTaskId(sheet, action.row, action.column, action.value);
+                    Logger.log(`更新アクション: 行 ${action.row}, 列 ${action.column}, 新しい値: ${action.value}`);
                     break;
                 case 'delete':
                     deleteRow(sheet, action.row);
+                    Logger.log(`削除アクション: 行 ${action.row}`);
                     break;
                 case 'add':
                     addRow(sheet, action.values);
+                    Logger.log(`追加アクション: ${JSON.stringify(action.values)}`);
                     break;
+                default:
+                    Logger.log(`不明なアクション: ${JSON.stringify(action)}`);
             }
         });
     } catch (e) {
@@ -172,9 +209,8 @@ function getTasksHtml() {
     return taskListHtml;
 }
 
-function updateRowByTaskId(sheet, taskId, columnName, newValue) {
-    let data = sheet.getDataRange().getValues();
-    let headers = data[0];
+function updateRowByTaskId(sheet, rowIndex, columnName, newValue) {
+    let headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     let columnIndex = headers.indexOf(columnName) + 1;
 
     if (columnIndex <= 0) {
@@ -182,14 +218,9 @@ function updateRowByTaskId(sheet, taskId, columnName, newValue) {
         return;
     }
 
-    for (let i = 1; i < data.length; i++) {
-        if (data[i][0] == taskId) { // Assuming the first column contains the Task ID
-            sheet.getRange(i + 1, columnIndex).setValue(newValue); // i + 1 because sheet rows are 1-indexed
-            return;
-        }
-    }
-
-    Logger.log(`Task ID ${taskId} not found.`);
+    // 行数を直接使用して更新
+    sheet.getRange(rowIndex, columnIndex).setValue(newValue);
+    Logger.log(`更新アクション: 行 ${rowIndex}, 列 ${columnName}, 新しい値: ${newValue}`);
 }
 
 function doGet() {

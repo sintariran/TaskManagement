@@ -4,75 +4,81 @@
     <base target="_top">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* ここを変更 */
+            height: 100vh;
         }
         .container {
-            max-width: 400px;
-            margin: 40px auto;
+            max-width: 500px;
+            width: 100%;
             background: #fff;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            text-align: center;
         }
         h1 {
-            text-align: center;
             color: #333;
-            font-size: 24px;
+            font-size: 28px;
             margin-bottom: 20px;
         }
         textarea {
             width: 100%;
-            height: 50px;
-            padding: 10px;
+            height: 80px;
+            padding: 15px;
             border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-bottom: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
             resize: none;
-            font-size: 14px;
+            font-size: 16px;
             box-sizing: border-box;
         }
         button {
             width: 100%;
-            padding: 10px;
-            background-color: #4CAF50;
+            padding: 15px;
+            background-color: #007BFF;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 16px;
-            margin-bottom: 20px;
+            font-size: 18px;
+            transition: background-color 0.3s ease;
         }
         button:hover {
-            background-color: #45a049;
+            background-color: #0056b3;
         }
         .loading {
             display: none;
-            color: blue;
-            margin-bottom: 10px;
-            text-align: center;
+            color: #007BFF;
+            margin-bottom: 20px;
+            font-size: 16px;
         }
         .response {
-            margin-top: 10px;
-            padding: 10px;
+            margin-top: 20px;
+            padding: 15px;
             border: 1px solid #ddd;
             border-radius: 5px;
             background: #f9f9f9;
-            font-size: 14px;
+            font-size: 16px;
+            text-align: left;
         }
-        .task-list {
-            list-style-type: none;
-            padding: 0;
+        .updated-tasks {
+            margin-top: 30px;
+            text-align: left;
+        }
+        .updated-tasks h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
         }
         .task-item {
             padding: 10px;
             border-bottom: 1px solid #ddd;
-            font-size: 14px;
-        }
-        .updated-tasks {
-            margin-top: 20px;
+            font-size: 16px;
         }
     </style>
 </head>
@@ -83,7 +89,6 @@
         <button onclick="sendPrompt()">送信</button>
         <div id="loading" class="loading">送信中...</div>
         <div id="response" class="response"></div>
-        <ul id="taskList" class="task-list"></ul>
         <div id="updated-tasks-container">
             <!-- 修正されたタスクがここに追加される -->
         </div>
@@ -93,39 +98,36 @@
             var prompt = document.getElementById('prompt').value;
             console.log('送信されたプロンプト: ' + prompt); // デバッグ用
             var loading = document.getElementById('loading');
+            var response = document.getElementById('response');
+            var button = document.querySelector('button');
+    
+            // ボタンを無効化してローディング表示
+            button.disabled = true;
             loading.style.display = 'block';
+            response.innerText = '';
     
-            google.script.run.withSuccessHandler(function(response) {
+            google.script.run.withSuccessHandler(function(parsedResponse) {
                 loading.style.display = 'none';
-                console.log('サーバーからの応答: ' + response); // デバッグ用
-    
-                if (!response) {
+                button.disabled = false;
+                console.log('サーバーからの応答: ' + JSON.stringify(parsedResponse)); // デバッグ用
+
+                if (!parsedResponse) {
                     console.log('サーバーからの応答がnullです');
-                    document.getElementById('response').innerText = 'サーバーからの応答がありません';
+                    response.innerText = 'サーバーからの応答がありません';
                     return;
                 }
-    
-                document.getElementById('response').innerText = response;
-    
-                // JSONをパースしてアクションを取得
-                try {
-                    // 応答内容からJSON部分を抽出
-                    let jsonResponse = response.match(/```json\s*([\s\S]*?)\s*```/);
-                    console.log('jsonResponse: ', jsonResponse);
-                    console.log('jsonResponse[1]: ', jsonResponse ? jsonResponse[1] : 'undefined');
-                    if (jsonResponse && jsonResponse[1]) {
-                        let actions = JSON.parse(jsonResponse[1]).actions;
-                        console.log('取得したアクション: ' + JSON.stringify(actions)); // デバッグ用
-                        updateUIWithTasks(actions);
-                    } else {
-                        console.log('JSON部分が見つかりません');
-                    }
-                } catch (e) {
-                    console.log('JSONパースエラー: ' + e);
-                }
+
+                response.innerText = '管理表を更新しました'; // 成功メッセージを表示
+
+                // actionsを取得してUIを更新
+                let actions = parsedResponse.actions;
+                console.log('取得したアクション: ' + JSON.stringify(actions)); // デバッグ用
+                updateUIWithTasks(actions);
             }).withFailureHandler(function(error) {
                 loading.style.display = 'none';
+                button.disabled = false;
                 console.log('サーバーエラー: ' + error);
+                response.innerText = 'エラーが発生しました。もう一度お試しください。';
             }).handleUserPrompt(prompt);
         }
     
